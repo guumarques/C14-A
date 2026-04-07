@@ -1,4 +1,7 @@
-def decimal_a_binario(numero):
+from typing import Any
+
+
+def decimal_a_binario(numero: int):
     if numero == 0:
         return 0
 
@@ -45,3 +48,5 @@ def decimal_a_hexadecimal(numero):
 
         numero = numero // 16
     return hexadecimal
+
+print(decimal_a_binario(4))
