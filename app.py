@@ -12,3 +12,5 @@ def hello_world():
 def decimal_to_binario():
     print(decimal_a_binario(4))
     return f'<p>{decimal_a_binario(10)}<p>'
+
+#teste
