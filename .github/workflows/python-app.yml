@@ -42,10 +42,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          
 
   build:
-
+    name: Rodando Build
+    needs: tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -77,3 +77,24 @@ jobs:
         name: pytest-results-${{ matrix.python-version }}
         path: junit/test-results-${{ matrix.python-version }}.xml
       if: ${{ always() }}
+
+  # --- JOB  DEPLOY ---
+  deploy:
+    name: 🚀 Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: build
+    # Garante que só roda na branch main e se for um push (não PR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v5
+
+      # Vercel CLI Action (Mais limpo que instalar manualmente)
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod' # Deploy de produção
+
+ 
