@@ -48,5 +48,3 @@ def decimal_a_hexadecimal(numero):
 
         numero = numero // 16
     return hexadecimal
-
-print(decimal_a_binario(4))

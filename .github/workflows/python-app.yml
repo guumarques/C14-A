@@ -35,13 +35,7 @@ jobs:
       - name: Test with pytest
         run: |
           pip install pytest pytest-cov
-          pytest test_numeros.py --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
-
-      - name: Install dependencies
-        run:  |
-          python -m pip install --upgrade pip
-          pip install flake8 pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pytest --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
 
   build:
     name: Rodando Build
@@ -69,7 +63,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
-      run: pytest test_numeros.py --doctest-modules --junitxml=junit/test-results-${{ matrix.python-version }}.xml
+      run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v4
