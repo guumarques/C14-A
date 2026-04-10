@@ -1,7 +1,6 @@
 class TemperatureConverter:
     def _check(self, value, min_val=None):
-        if isinstance(value, bool):
-            raise TypeError("Valor deve ser numérico (inteiro ou float), não booleano")
+        
         if not isinstance(value, (int, float)):
             raise TypeError("Valor deve ser numérico")
         if min_val is not None and value < min_val:
