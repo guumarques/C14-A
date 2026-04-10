@@ -106,7 +106,7 @@ jobs:
 
       # CASO 2: SUCESSO (Apenas quando criar um Release)
       - name: Send Success Email to Client
-        if: github.event_name == 'release' && needs.deploy.result == 'success'
+        if: github.event_name == 'release' && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped')
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
