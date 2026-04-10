@@ -95,7 +95,7 @@ jobs:
           server_port: 465
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ❌ FALHA no Pipeline - Conversor
+          subject: Falha no Pipeline - Conversor
           body: |
             Ocorreu um erro no pipeline!
             Status dos Testes: ${{ needs.tests.result }}
@@ -104,27 +104,22 @@ jobs:
           to: ${{ secrets.MY_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
 
-      # CASO 2: SUCESSO (Apenas quando criar um Release)
+      # CASO 2: SUCESSO 
       - name: Send Success Email to Client
-        if: github.event_name == 'release' && needs.deploy.result == 'success'
+        if: needs.deploy.result == 'success' 
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: 🚀 Novidades no Conversor - Versão ${{ github.event.release.tag_name }}
+          subject: Novidades no Conversor - Versão ${{ github.event.release.tag_name }}
           body: |
             Olá! Uma nova atualização do Conversor está disponível.
             
-            O que mudou:
-            --------------------------------------------------
-            ${{ github.event.release.body }}
-            --------------------------------------------------
-            
-            Acesse o sistema atualizado aqui: [SEU_LINK_DA_VERCEL]
+            Acesse o sistema atualizado aqui: https://c14-a.vercel.app
             
             Atenciosamente,
             Equipe de Engenharia de Software - Inatel
-          to: ${{ secrets.MY_EMAIL }},${{ secrets.CLIENT_EMAIL }}
+          to: ${{ secrets.MY_EMAIL }}
           from: Sistema Conversor <${{ secrets.MAIL_USERNAME }}>

@@ -1,12 +1,10 @@
 from flask import Flask, request, jsonify
-
-# Importando sua lógica
 from numeros import decimal_a_binario, decimal_a_octal, decimal_a_hexadecimal
 from conversor_monetario import converter, listar_moedas, obter_taxa
 from temperatura import TemperatureConverter
 
 app = Flask(__name__)
-# O erro da temperatura acontecia porque faltava instanciar a classe!
+
 temp_conv = TemperatureConverter()
 
 @app.route("/")
@@ -23,7 +21,7 @@ def home():
 
 @app.route("/numeros")
 def rota_numeros():
-    n = request.args.get("n", 10, type=int) # Se não passar 'n', assume 10
+    n = request.args.get("n", 10, type=int)
     return jsonify({
         "original": n,
         "binario": decimal_a_binario(n),
@@ -54,7 +52,6 @@ def rota_temperatura():
         v = request.args.get("valor", 0.0, type=float)
         u = request.args.get("unidade", "C").upper()
         
-        # Agora chamando os métodos da classe corretamente
         if u == "C":
             res = {"K": temp_conv.celsius_to_kelvin(v), "F": temp_conv.celsius_to_fahrenheit(v)}
         elif u == "F":
@@ -67,3 +64,5 @@ def rota_temperatura():
         return jsonify({"entrada": v, "unidade": u, "conversoes": res})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
+    
+    #teste
