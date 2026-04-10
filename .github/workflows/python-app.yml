@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  # --- JOB 1: TESTES ---
+  # --- JOB TESTES ---
   tests:
     name: Rodando Testes
     runs-on: ubuntu-latest
