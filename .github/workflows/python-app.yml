@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  # --- JOB TESTES ---
+  # --- JOB 1: TESTES ---
   tests:
     name: Rodando Testes
     runs-on: ubuntu-latest
@@ -34,14 +34,6 @@ jobs:
       - name: Test with pytest
         run: |
           pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov=. --cov-report=xml
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.python-version }}
-          path: |
-            junit/test-results-${{ matrix.python-version }}.xml
-            coverage.xml
 
   # --- JOB 2: BUILD & LINT ---
   build:
@@ -68,17 +60,6 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Build Package
-        run: |
-          pip install build
-          python -m build
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-package
-          path: dist/ 
-
   # --- JOB 3: DEPLOY ---
   deploy:
     name: Deploy to Vercel
@@ -100,14 +81,14 @@ jobs:
     name: Notify Via Email
     runs-on: ubuntu-latest
     if: always() 
-    needs: [tests, build]
+    needs: [tests, deploy]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       # CASO 1: ERRO (Falha nos Testes ou no Deploy)
       - name: Send Failure Email to Dev
-        if: needs.tests.result == 'failure' || needs.build.result == 'failure'
+        if: needs.tests.result == 'failure' || needs.deploy.result == 'failure'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -118,14 +99,14 @@ jobs:
           body: |
             Ocorreu um erro no pipeline!
             Status dos Testes: ${{ needs.tests.result }}
-            Status do Build: ${{ needs.build.result }}
+            Status do Deploy: ${{ needs.deploy.result }}
             Logs do erro aqui: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: ${{ secrets.MY_EMAIL }}, ${{ secrets.KAUA_EMAIL }}, ${{ secrets.LUCAS_EMAIL }}
+          to: ${{ secrets.MY_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
 
       # CASO 2: SUCESSO 
       - name: Send Success Email to Client
-        if: needs.tests.result == 'success' && needs.build.result == 'success'
+        if: needs.deploy.result == 'success' 
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -140,5 +121,5 @@ jobs:
             
             Atenciosamente,
             Equipe de Engenharia de Software - Inatel
-          to: ${{ secrets.MY_EMAIL }}, ${{ secrets.KAUA_EMAIL }}, ${{ secrets.LUCAS_EMAIL }}
+          to: ${{ secrets.MY_EMAIL }}
           from: Sistema Conversor <${{ secrets.MAIL_USERNAME }}>
