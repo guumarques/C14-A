@@ -122,9 +122,9 @@ jobs:
             ${{ github.event.release.body }}
             --------------------------------------------------
             
-            Acesse o sistema atualizado aqui: [SEU_LINK_DA_VERCEL]
+            Acesse o sistema atualizado aqui: [Vercel App](https://c14-a.vercel.app)
             
             Atenciosamente,
             Equipe de Engenharia de Software - Inatel
-          to: ${{ secrets.MY_EMAIL }},${{ secrets.CLIENT_EMAIL }}
+          to: ${{ secrets.MY_EMAIL }}
           from: Sistema Conversor <${{ secrets.MAIL_USERNAME }}>
