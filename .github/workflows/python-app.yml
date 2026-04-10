@@ -101,7 +101,7 @@ jobs:
             Status dos Testes: ${{ needs.tests.result }}
             Status do Deploy: ${{ needs.deploy.result }}
             Logs do erro aqui: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: ${{ secrets.MY_EMAIL }}
+          to: ${{ secrets.MY_EMAIL }}, ${{ secrets.KAUA_EMAIL }}, ${{ secrets.LUCAS_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
 
       # CASO 2: SUCESSO 
@@ -121,5 +121,5 @@ jobs:
             
             Atenciosamente,
             Equipe de Engenharia de Software - Inatel
-          to: ${{ secrets.MY_EMAIL }}
+          to: ${{ secrets.MY_EMAIL }}, ${{ secrets.KAUA_EMAIL }}, ${{ secrets.LUCAS_EMAIL }}
           from: Sistema Conversor <${{ secrets.MAIL_USERNAME }}>
