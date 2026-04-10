@@ -7,3 +7,6 @@ name = "conversor"
 version = "1.0.0"
 description = "Conversor de unidades - Engenharia Edition"
 requires-python = ">=3.10"
+
+[tool.setuptools]
+py-modules = ["app", "conversor_monetario", "numeros", "temperatura"]
