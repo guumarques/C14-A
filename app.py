@@ -1,71 +1,69 @@
 from flask import Flask, request, jsonify
 
+# Importando sua lógica
 from numeros import decimal_a_binario, decimal_a_octal, decimal_a_hexadecimal
 from conversor_monetario import converter, listar_moedas, obter_taxa
+from temperatura import TemperatureConverter
 
 app = Flask(__name__)
-
+# O erro da temperatura acontecia porque faltava instanciar a classe!
+temp_conv = TemperatureConverter()
 
 @app.route("/")
-def index():
-    return """
-    <h1>Conversor Universal</h1>
-    <ul>
-        <li><a href="/numeros">/numeros</a> — Conversão numérica (decimal → binário)</li>
-        <li><a href="/moedas">/moedas</a> — Listar moedas disponíveis</li>
-        <li><a href="/converter?valor=100&origem=USD&destino=BRL">/converter?valor=100&amp;origem=USD&amp;destino=BRL</a> — Converter moeda</li>
-        <li><a href="/taxa?origem=USD&destino=BRL">/taxa?origem=USD&amp;destino=BRL</a> — Consultar taxa de câmbio</li>
-    </ul>
-    """
-
-
-@app.route("/numeros")
-def decimal_to_binario():
-    numero = request.args.get("n", 10, type=int)
+def home():
     return jsonify({
-        "decimal": numero,
-        "binario": decimal_a_binario(numero),
-        "octal": decimal_a_octal(numero),
-        "hexadecimal": decimal_a_hexadecimal(numero),
+        "mensagem": "API de Conversão Ativa!",
+        "rotas_disponiveis": [
+            "/numeros?n=10",
+            "/moedas",
+            "/converter?valor=100&origem=USD&destino=BRL",
+            "/temperatura?valor=32&unidade=C"
+        ]
     })
 
+@app.route("/numeros")
+def rota_numeros():
+    n = request.args.get("n", 10, type=int) # Se não passar 'n', assume 10
+    return jsonify({
+        "original": n,
+        "binario": decimal_a_binario(n),
+        "octal": decimal_a_octal(n),
+        "hexadecimal": decimal_a_hexadecimal(n)
+    })
 
 @app.route("/moedas")
-def moedas():
-    return jsonify({"moedas_suportadas": listar_moedas()})
-
+def rota_moedas():
+    return jsonify({"suportadas": listar_moedas()})
 
 @app.route("/converter")
-def converter_moeda():
+def rota_converter():
+    v = request.args.get("valor", 1.0, type=float)
+    o = request.args.get("origem", "USD").upper()
+    d = request.args.get("destino", "BRL").upper()
     try:
-        valor = request.args.get("valor", type=float)
-        origem = request.args.get("origem", "")
-        destino = request.args.get("destino", "")
-
-        if valor is None:
-            return jsonify({"erro": "Parâmetro 'valor' é obrigatório"}), 400
-
-        resultado = converter(valor, origem, destino)
         return jsonify({
-            "valor_original": valor,
-            "moeda_origem": origem.upper(),
-            "moeda_destino": destino.upper(),
-            "valor_convertido": resultado,
-            "taxa": obter_taxa(origem, destino),
+            "resultado": converter(v, o, d),
+            "taxa_aplicada": obter_taxa(o, d)
         })
-    except (ValueError, TypeError, KeyError) as e:
+    except Exception as e:
         return jsonify({"erro": str(e)}), 400
 
-
-@app.route("/taxa")
-def taxa():
+@app.route("/temperatura")
+def rota_temperatura():
     try:
-        origem = request.args.get("origem", "")
-        destino = request.args.get("destino", "")
-        return jsonify({
-            "origem": origem.upper(),
-            "destino": destino.upper(),
-            "taxa": obter_taxa(origem, destino),
-        })
-    except KeyError as e:
+        v = request.args.get("valor", 0.0, type=float)
+        u = request.args.get("unidade", "C").upper()
+        
+        # Agora chamando os métodos da classe corretamente
+        if u == "C":
+            res = {"K": temp_conv.celsius_to_kelvin(v), "F": temp_conv.celsius_to_fahrenheit(v)}
+        elif u == "F":
+            res = {"C": temp_conv.fahrenheit_to_celsius(v)}
+        elif u == "K":
+            res = {"C": temp_conv.kelvin_to_celsius(v)}
+        else:
+            return jsonify({"erro": "Use unidade C, F ou K"}), 400
+            
+        return jsonify({"entrada": v, "unidade": u, "conversoes": res})
+    except Exception as e:
         return jsonify({"erro": str(e)}), 400
