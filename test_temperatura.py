@@ -46,3 +46,5 @@ def test_boolean_value(tc):
 def test_celsius_none(tc):
     with pytest.raises(TypeError):
         tc.celsius_to_kelvin(None)
+
+#teste
