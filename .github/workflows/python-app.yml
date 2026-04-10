@@ -1,6 +1,3 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: Python application
 
 on:
@@ -8,6 +5,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  release:
+    types: [published] # Necessário para o envio de e-mail de release funcionar
 
 permissions:
   contents: read
@@ -19,76 +18,113 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "pypy3.10", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
 
     steps:
       - uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-cov
       - name: Test with pytest
         run: |
-          pip install pytest pytest-cov
-          pytest --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
+          pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov=. --cov-report=xml
 
+  # --- JOB 2: BUILD & LINT ---
   build:
     name: Rodando Build
     needs: tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.10", "3.11", "3.12", "3.13"]
+        python-version: [ "3.12" ] # Build simplificado para uma versão
 
     steps:
-    - uses: actions/checkout@v5
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Upload pytest test results
-      uses: actions/upload-artifact@v4
-      with:
-        name: pytest-results-${{ matrix.python-version }}
-        path: junit/test-results-${{ matrix.python-version }}.xml
-      if: ${{ always() }}
-
-  # --- JOB  DEPLOY ---
+  # --- JOB 3: DEPLOY ---
   deploy:
-    name: 🚀 Deploy to Vercel
+    name: Deploy to Vercel
     runs-on: ubuntu-latest
     needs: build
-    # Garante que só roda na branch main e se for um push (não PR)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v5
-
-      # Vercel CLI Action (Mais limpo que instalar manualmente)
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod' # Deploy de produção
+          vercel-args: '--prod'
 
- 
+  # --- JOB 4: NOTIFICAÇÃO ---
+  notification:
+    name: Notify Via Email
+    runs-on: ubuntu-latest
+    if: always() 
+    needs: [tests, deploy]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # CASO 1: ERRO (Falha nos Testes ou no Deploy)
+      - name: Send Failure Email to Dev
+        if: needs.tests.result == 'failure' || needs.deploy.result == 'failure'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ FALHA no Pipeline - Conversor
+          body: |
+            Ocorreu um erro no pipeline!
+            Status dos Testes: ${{ needs.tests.result }}
+            Status do Deploy: ${{ needs.deploy.result }}
+            Logs do erro aqui: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: ${{ secrets.MY_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+
+      # CASO 2: SUCESSO (Apenas quando criar um Release)
+      - name: Send Success Email to Client
+        if: github.event_name == 'release' && needs.deploy.result == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: 🚀 Novidades no Conversor - Versão ${{ github.event.release.tag_name }}
+          body: |
+            Olá! Uma nova atualização do Conversor está disponível.
+            
+            O que mudou:
+            --------------------------------------------------
+            ${{ github.event.release.body }}
+            --------------------------------------------------
+            
+            Acesse o sistema atualizado aqui: [SEU_LINK_DA_VERCEL]
+            
+            Atenciosamente,
+            Equipe de Engenharia de Software - Inatel
+          to: ${{ secrets.MY_EMAIL }},${{ secrets.CLIENT_EMAIL }}
+          from: Sistema Conversor <${{ secrets.MAIL_USERNAME }}>
